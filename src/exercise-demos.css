@@ -1,0 +1,8 @@
+.exercisedb-demo{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px!important;overflow:hidden;background:var(--panel, #f4f6fa)!important}
+.exercise-gif{display:block;width:100%;max-width:520px;height:260px;object-fit:contain;border-radius:12px;background:#fff}
+.gif-caption{display:flex;flex-direction:column;gap:4px;text-align:center;color:var(--muted, #687386);font-size:12px}
+.gif-caption b{font-size:14px;color:var(--text, #263044)}
+.gif-caption small{font-size:11px;color:var(--muted, #8a6a36)}
+.gif-error,.no-demo-card{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;color:var(--muted, #687386);padding:20px}
+.no-demo-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgba(120,130,150,.12)}
+.no-demo-card b{color:var(--text, #263044)}
