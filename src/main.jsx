@@ -55,7 +55,34 @@ function App(){
    if(cloudEnabled&&auth?.user){const {data:row,error}=await supabase.from('workout_sessions').insert({user_id:auth.user.id,program_id:session.programId,workout_name:session.workoutName,started_at:session.startedAt,finished_at:session.finishedAt}).select().single();if(error)setNotice(`Cloud save failed: ${error.message}`);else{const rows=session.sets.map(s=>({session_id:row.id,user_id:auth.user.id,exercise_name:s.exercise,set_number:s.setNo,weight_kg:Number(s.weight)||0,reps:Number(s.reps)||0,completed:s.done}));const {error:setError}=await supabase.from('workout_sets').insert(rows);if(setError)setNotice(`Session saved, but sets failed: ${setError.message}`);else cloudOk=true;}}
    setActive(null);setTab('home');if(cloudOk){setNotice('Workout saved and synced to your account.');if(couple)loadCouple()}else if(!cloudEnabled||!auth?.user)setNotice('Workout saved on this device. Sign in to sync to the cloud.');
  };
- const signIn=async e=>{e.preventDefault();setBusy(true);const result=authMode==='signup'?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});setNotice(result.error?.message||(authMode==='signup'?'Account created. Check your email if confirmation is required.':'Signed in.'));setBusy(false)};
+ //const signIn=async e=>{e.preventDefault();setBusy(true);const result=authMode==='signup'?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});setNotice(result.error?.message||(authMode==='signup'?'Account created. Check your email if confirmation is required.':'Signed in.'));setBusy(false)};
+ const signIn = async e => {
+  e.preventDefault();
+  setBusy(true);
+
+  const result = authMode === 'signup'
+    ? await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      })
+    : await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+  setNotice(
+    result.error?.message ||
+    (authMode === 'signup'
+      ? 'Account created. Check your email to confirm your account.'
+      : 'Signed in.')
+  );
+
+  setBusy(false);
+};
+
  const saveProfile=async e=>{e.preventDefault();if(!auth?.user)return;setBusy(true);const payload={user_id:auth.user.id,display_name:profileName.trim()||'Athlete',goal:profileGoal,updated_at:new Date().toISOString()};const {error}=await supabase.from('ironlog_profiles').upsert(payload,{onConflict:'user_id'});if(error)setNotice(error.message);else{setProfile({display_name:payload.display_name,goal:payload.goal});setNotice('Your profile and training goal are saved.')}setBusy(false)};
  const createCouple=async()=>{setBusy(true);const {data:r,error}=await supabase.rpc('create_ironlog_couple',{p_name:'Our training team'});if(error)setNotice(error.message);else{const x=Array.isArray(r)?r[0]:r;setInviteCode(x?.invite_code||'');setNotice('Couple dashboard created. Share the invite code with your partner.');await loadCouple()}setBusy(false)};
  const joinCouple=async e=>{e.preventDefault();setBusy(true);const {error}=await supabase.rpc('join_ironlog_couple',{p_invite_code:joinCode});if(error)setNotice(error.message);else{setJoinCode('');setNotice('You joined the couple dashboard!');await loadCouple()}setBusy(false)};
