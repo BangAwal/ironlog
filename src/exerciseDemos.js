@@ -156,5 +156,71 @@ export const exerciseDemos = {
     "name": "weighted front plank",
     "url": "https://static.exercisedb.dev/media/VBAWRPG.gif",
     "status": "Exact match"
-  }
+  },
+  "Dumbbell Bent-Over Row": {
+  id: "BJ0Hz5L",
+  name: "dumbbell bent over row",
+  url: "https://static.exercisedb.dev/media/BJ0Hz5L.gif",
+  status: "Exact match"
+  },
+  "Cable Crunch": {
+  id: "pinterest-cable-crunch",
+  name: "cable crunch",
+  url: "https://i.pinimg.com/originals/f3/56/f9/f356f9c7af3c3f0c5d75fa1ec92c2ad2.gif",
+  status: "Custom GIF"
+  },
+  "Machine Chest Press": {
+  id: "pinterest-machine-chest-press",
+  name: "machine chest press",
+  url: "https://i.pinimg.com/originals/97/1f/4b/971f4bf279819907660d44bd4bab8ac0.gif",
+  status: "Custom GIF"
+  },
+  "Dumbbell Incline Fly": {
+  id: "ESOd5Pl",
+  name: "dumbbell incline fly",
+  url: "https://static.exercisedb.dev/media/ESOd5Pl.gif",
+  status: "Exact match"
+  },
+  "Seated Cable Row": {
+  id: "burnfit-seated-cable-row",
+  name: "seated cable row",
+  url: "https://burnfit.io/en/wp-content/uploads/sites/3/2026/01/SEATED_CABLE_ROW.gif",
+  status: "Custom GIF"
+  },
+  "Neutral-Grip Lat Pulldown": {
+  id: "tenor-neutral-grip-lat-pulldown",
+  name: "neutral grip lat pulldown",
+  url: "https://media.tenor.com/PVR9ra9tAwcAAAAM/pulley-pegada-aberta.gif",
+  status: "Custom GIF"
+  },
+  "Reverse Pec Deck": {
+  id: "pinterest-reverse-pec-deck",
+  name: "reverse pec deck",
+  url: "https://i.pinimg.com/originals/13/dd/99/13dd99db75758ade12478e90bfcc2e84.gif",
+  status: "Custom GIF"
+  },
+  "Cable Triceps Pushdown": {
+  id: "pinterest-cable-triceps-pushdown",
+  name: "cable triceps pushdown",
+  url: "https://i.pinimg.com/originals/cd/07/7e/cd077ebb5a33aedd405f082c1494189a.gif",
+  status: "Custom GIF"
+  },
+  "Barbell Hip Thrust": {
+  id: "pinterest-barbell-hip-thrust",
+  name: "barbell hip thrust",
+  url: "https://i.pinimg.com/originals/f9/65/95/f96595d8990e81472452ab65ae227ff8.gif",
+  status: "Custom GIF"
+  },
+  "Cable Glute Kickback": {
+  id: "fitnessprogramer-cable-glute-kickback",
+  name: "cable glute kickback",
+  url: "https://fitnessprogramer.com/wp-content/uploads/2021/05/Cable-Donkey-Kickback.gif",
+  status: "Custom GIF"
+  },
+  "Dumbbell Curl": {
+  id: "pinterest-dumbbell-curl",
+  name: "dumbbell curl",
+  url: "https://i.pinimg.com/originals/7d/3c/de/7d3cdeed84c1c19ad372d5b25beffd08.gif",
+  status: "Custom GIF"
+},
 };
