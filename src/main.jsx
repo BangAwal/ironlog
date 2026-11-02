@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { programs } from './program';
 import { exerciseDemos } from './exerciseDemos';
+import ProgressDashboard from './ProgressDashboard';
 import { cloudEnabled, supabase } from './supabase';
 import './styles.css';
 import './exercise-demos.css';
@@ -1090,90 +1091,15 @@ function App() {
             )}
           </>
         )}
-        {/* PROGRESS: totals and a bar chart of recent session volume */}
+        {/* PROGRESS: personal training analytics by primary muscle group */}
         {tab === 'progress' && (
           <>
             <div className="page-heading">
               <p className="eyebrow">YOUR DEVELOPMENT</p>
               <h1>Progress</h1>
-              <p className="muted">A simple view of consistency and training volume.</p>
+              <p className="muted">A detailed view of your training consistency, muscle groups and exercise performance.</p>
             </div>
-            <section className="stats-grid">
-              <Stat icon={<Dumbbell />} label="Sessions" value={completed.length} />
-              <Stat
-                icon={<Activity />}
-                label="Logged sets"
-                value={completed.reduce((a, s) => a + s.sets.filter(x => x.done).length, 0)}
-              />
-              <Stat
-                icon={<BarChart3 />}
-                label="Total volume"
-                value={`${Math.round(totalVolume).toLocaleString()} kg`}
-              />
-            </section>
-            <div className="panel">
-              <h3>Recent training volume</h3>
-              <p className="muted small">Working weight × reps from completed sets</p>
-              {completed.length ? (
-                <div className="bars">
-                  {completed
-                    .slice(0, 8)
-                    .reverse()
-                    .map(s => {
-                      const vol = s.sets
-                        .filter(x => x.done)
-                        .reduce((a, x) => a + (+x.weight || 0) * (+x.reps || 0), 0);
-                      const max = Math.max(
-                        1,
-                        ...completed.map(z =>
-                          z.sets
-                            .filter(x => x.done)
-                            .reduce((a, x) => a + (+x.weight || 0) * (+x.reps || 0), 0)
-                        )
-                      );
-                      return (
-                        <div className="bar-col" key={s.id}>
-                          <div className="bar-value">{Math.round(vol)}</div>
-                          <div className="bar-track">
-                            <div
-                              className="bar-fill"
-                              style={{ height: `${Math.max(3, (vol / max) * 100)}%` }}
-                            />
-                          </div>
-                          <span>
-                            {new Date(s.date + 'T12:00:00').toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="empty">
-                  <BarChart3 size={23} />
-                  <b>No progress data yet</b>
-                  <span>Log a workout to start building your chart.</span>
-                </div>
-              )}
-            </div>
-            <div className="panel">
-              <h3>Training focus</h3>
-              <p className="muted small">
-                {profile.goal === 'Glutes & core'
-                  ? 'Your plan prioritizes glute development and core strength while maintaining balanced upper-body training.'
-                  : 'Your plan prioritizes chest and arms while keeping the rest of your physique balanced.'}
-              </p>
-              <div className="focus-chips">
-                {(profile.goal === 'Glutes & core'
-                  ? ['Glutes', 'Hamstrings', 'Quads', 'Core', 'Back', 'Shoulders', 'Arms']
-                  : ['Chest', 'Biceps', 'Triceps', 'Back', 'Legs']
-                ).map(x => (
-                  <span key={x}>{x}</span>
-                ))}
-              </div>
-            </div>
+            <ProgressDashboard sessions={completed} profile={profile} />
           </>
         )}
         {/* HISTORY: every completed session */}
