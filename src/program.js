@@ -66,29 +66,29 @@ export const programs = {
   ],
   female: [
     {
-      id: 'f-lower-a',
-      name: 'Glutes & Hamstrings',
-      focus: 'Glute priority',
-      day: 'Sunday',
-      groups: [
-        ['Romanian Deadlift', 3, '8–12', 'Hamstrings & glutes'],
-        ['Barbell Hip Thrust', 4, '8–12', 'Glutes'],
-        ['Seated Leg Curl', 3, '10–15', 'Hamstrings'],
-        ['Hip Abduction Machine', 3, '12–20', 'Glutes'],
-        ['Cable Glute Kickback', 2, '12–15 each leg', 'Glutes'],
-      ],
-    },
-    {
       id: 'f-upper-a',
       name: 'Back & Biceps',
       focus: 'Back, rear delts & biceps',
-      day: 'Monday',
+      day: 'Sunday',
       groups: [
         ['Lat Pulldown', 3, '10–12', 'Back'],
         ['Single-Arm Cable Row', 3, '10–12 each side', 'Back'],
         ['Dumbbell Bent-Over Row', 3, '10–12', 'Back'],
         ['Reverse Pec Deck', 3, '12–15', 'Rear delts'],
         ['Dumbbell Curl', 2, '10–12', 'Biceps'],
+      ],
+    },
+    {
+      id: 'f-lower-a',
+      name: 'Glutes & Hamstrings',
+      focus: 'Glute priority',
+      day: 'Monday',
+      groups: [
+        ['Romanian Deadlift', 3, '8–12', 'Hamstrings & glutes'],
+        ['Barbell Hip Thrust', 4, '8–12', 'Glutes'],
+        ['Seated Leg Curl', 3, '10–15', 'Hamstrings'],
+        ['Hip Abduction Machine', 3, '12–20', 'Glutes'],
+        ['Cable Glute Kickback', 2, '12–15 each leg', 'Glutes'],
       ],
     },
     {
