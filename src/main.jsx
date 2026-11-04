@@ -32,13 +32,28 @@ import './exercise-demos.css';
 import couplePhoto from './couple-photo.png';
 
 // Get today's workout based on the current weekday
-function getTodayWorkout(workouts) {
-  const today = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    timeZone: 'Asia/Jakarta',
-  }).format(new Date());
+function jakartaDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
 
-  return workouts.find(workout => workout.day === today) || null;
+function addDays(dateString, amount) {
+  const date = new Date(`${dateString}T12:00:00+07:00`);
+  date.setDate(date.getDate() + amount);
+  return jakartaDate(date);
+}
+
+function weekdayForDate(dateString) {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Jakarta' })
+    .format(new Date(`${dateString}T12:00:00+07:00`));
+}
+
+function getBaseWorkout(workouts, dateString) {
+  const weekday = weekdayForDate(dateString);
+  return workouts.find(workout => workout.day === weekday) || null;
 }
 
 // localStorage key holding the locally cached list of finished workout sessions.
@@ -117,7 +132,10 @@ function App() {
   // data: cached finished sessions | tab: current screen | active/sets/exerciseIndex/timer: live workout
   // (restored from the draft if one exists) | auth/email/password/authMode: Supabase sign-in
   // notice/busy: banner message and button-disabled flag
-  const [data, setData] = useState(load),
+  const [scheduleOverrides, setScheduleOverrides] = useState([]),
+    [showPostpone, setShowPostpone] = useState(false),
+    [scheduleBusy, setScheduleBusy] = useState(false),
+    [data, setData] = useState(load),
     [tab, setTab] = useState(loadDraft() ? 'workout' : 'home'),
     [active, setActive] = useState(() => loadDraft()?.active || null),
     [sets, setSets] = useState(() => loadDraft()?.sets || []),
@@ -191,6 +209,7 @@ function App() {
     else {
       setCouple(null);
       setCoupleStats([]);
+      setScheduleOverrides([]);
     }
   }, [auth?.user?.id]);
   // Loads the signed-in user's profile and all workout sessions (with their sets) from Supabase.
@@ -199,13 +218,13 @@ function App() {
   async function loadAccount() {
     const user = auth?.user;
     if (!user) return;
-    const [{ data: pr, error: pe }, { data: rows, error: se }] = await Promise.all([
+    const [{ data: pr, error: pe }, { data: rows, error: se }, { data: overrides, error: scheduleError }] = await Promise.all([
       supabase.from('ironlog_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('workout_sessions')
-        .select('*, workout_sets(*)')
-        .order('started_at', { ascending: false }),
+      supabase.from('workout_sessions').select('*, workout_sets(*)').order('started_at', { ascending: false }),
+      supabase.from('workout_schedule_overrides').select('*').gte('schedule_date', jakartaDate()).order('schedule_date'),
     ]);
+    if (scheduleError) setNotice(`Schedule sync: ${scheduleError.message}. Apply the scheduling migration.`);
+    else setScheduleOverrides(overrides || []);
     if (pe) setNotice(`Profile: ${pe.message}. Run couple-migration.sql if you haven't yet.`);
     if (pr) {
       setProfile({ display_name: pr.display_name, goal: pr.goal });
@@ -318,6 +337,59 @@ function App() {
     );
     setTab('workout');
   };
+  // Persist a one-day schedule adjustment for this user. A moved workout replaces
+  // the destination day's normal workout; that displaced workout moves one day later.
+  const adjustTodaySchedule = async action => {
+    if (!auth?.user || !cloudEnabled) {
+      setNotice('Sign in to use schedule changes across your devices.');
+      return;
+    }
+    if (!todayWorkout) return;
+    setScheduleBusy(true);
+    const tomorrow = addDays(todayDate, 1);
+    const tomorrowWorkout = getScheduledWorkout(tomorrow);
+    const changes = [];
+    if (action === 'skip') {
+      changes.push({
+        user_id: auth.user.id, schedule_date: todayDate, original_date: todayDate,
+        program_id: null, status: 'skipped',
+      });
+    } else {
+      if (tomorrowWorkout) {
+        const dayAfter = addDays(tomorrow, 1);
+        const dayAfterWorkout = getScheduledWorkout(dayAfter);
+        if (dayAfterWorkout) {
+          setNotice('Cannot postpone safely: the following day already has a workout. Please resolve that schedule first.');
+          setScheduleBusy(false);
+          return;
+        }
+        changes.push({
+          user_id: auth.user.id, schedule_date: dayAfter, original_date: tomorrow,
+          program_id: tomorrowWorkout.id, status: 'rescheduled',
+        });
+      }
+      changes.push({
+        user_id: auth.user.id, schedule_date: tomorrow, original_date: todayDate,
+        program_id: todayWorkout.id, status: 'postponed',
+      });
+      changes.push({
+        user_id: auth.user.id, schedule_date: todayDate, original_date: todayDate,
+        program_id: null, status: 'postponed',
+      });
+    }
+    const { error } = await supabase.from('workout_schedule_overrides').upsert(changes, { onConflict: 'user_id,schedule_date' });
+    if (error) setNotice(`Could not update schedule: ${error.message}`);
+    else {
+      const { data: refreshed, error: refreshError } = await supabase
+        .from('workout_schedule_overrides').select('*').gte('schedule_date', todayDate).order('schedule_date');
+      if (refreshError) setNotice(`Schedule saved, but refresh failed: ${refreshError.message}`);
+      else setScheduleOverrides(refreshed || []);
+      setNotice(action === 'skip' ? `${todayWorkout.name} skipped.` : `${todayWorkout.name} postponed to tomorrow.`);
+      setShowPostpone(false);
+    }
+    setScheduleBusy(false);
+  };
+
   // Update a single field (weight / reps) of one set.
   const updateSet = (id, key, value) =>
     setSets(old => old.map(s => (s.id === id ? { ...s, [key]: value } : s)));
@@ -569,11 +641,19 @@ function App() {
   };
   // --- Derived values for rendering (today's workout uses the Asia/Jakarta time zone) ---
   const lastWorkout = completed[0];
-  const todayWorkout = getTodayWorkout(program);
-  const todayName = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    timeZone: 'Asia/Jakarta',
-  }).format(new Date());
+  const todayDate = jakartaDate();
+  const todayName = weekdayForDate(todayDate);
+  const overrideByDate = new Map(scheduleOverrides.map(item => [item.schedule_date, item]));
+  const getScheduledWorkout = dateString => {
+    const override = overrideByDate.get(dateString);
+    if (override) {
+      if (!override.program_id) return null;
+      return [...programs.male, ...programs.female].find(item => item.id === override.program_id) || null;
+    }
+    return getBaseWorkout(program, dateString);
+  };
+  const todayOverride = overrideByDate.get(todayDate);
+  const todayWorkout = getScheduledWorkout(todayDate);
   // Current exercise of the guided workout: [name, sets, reps, muscle group].
   const currentExercise = active?.groups?.[exerciseIndex] || null;
   const currentExerciseSets = currentExercise
@@ -676,55 +756,52 @@ function App() {
             </section>
             {/* Weekly split: the current weekday's card is highlighted as TODAY */}
             <div className="program-list">
-              {program.map(p => {
-                const isToday = p.day === todayName;
-                return (
-                  <button
-                    className="program-card"
-                    key={p.id}
-                    onClick={() => startWorkout(p)}
-                    style={
-                      isToday
-                        ? {
-                            border: '2px solid var(--accent, #7187e8)',
-                            background: 'var(--card-highlight, #f3f5ff)',
-                            boxShadow: '0 0 0 2px rgba(113,135,232,.10)',
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className={`day-icon ${p.id.includes('upper') ? 'blue' : 'green'}`}>
-                      {p.id.includes('upper') ? 'U' : 'L'}
-                    </div>
-                    <div className="program-info">
-                      <div className="program-top">
-                        <b>{p.name}</b>
-                        <span>
-                          {p.day}
-                          {isToday ? ' · TODAY' : ''}
-                        </span>
+              {(() => {
+                const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const weekStart = addDays(todayDate, -weekdays.indexOf(todayName));
+                return weekdays.map((day, index) => {
+                  const cardDate = addDays(weekStart, index);
+                  const p = getScheduledWorkout(cardDate);
+                  if (!p) return null;
+                  const cardOverride = overrideByDate.get(cardDate);
+                  const isToday = cardDate === todayDate;
+                  return (
+                    <button
+                      className="program-card"
+                      key={`${cardDate}-${p.id}`}
+                      onClick={() => startWorkout(p)}
+                      style={
+                        isToday
+                          ? {
+                              border: '2px solid var(--accent, #7187e8)',
+                              background: 'var(--card-highlight, #f3f5ff)',
+                              boxShadow: '0 0 0 2px rgba(113,135,232,.10)',
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className={`day-icon ${p.id.includes('upper') ? 'blue' : 'green'}`}>
+                        {p.id.includes('upper') ? 'U' : 'L'}
                       </div>
-                      <p>
-                        {p.focus} · {p.groups.length} exercises
-                      </p>
-                    </div>
-                    {isToday && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: '.06em',
-                          color: 'var(--accent, #596fce)',
-                          marginRight: 6,
-                        }}
-                      >
-                        TODAY
-                      </span>
-                    )}
-                    <ChevronRight size={18} className="chevron" />
-                  </button>
-                );
-              })}
+                      <div className="program-info">
+                        <div className="program-top">
+                          <b>{p.name}</b>
+                          <span>
+                            {day}{isToday ? ' · TODAY' : cardOverride?.status === 'postponed' ? ' · POSTPONED' : cardOverride?.status === 'rescheduled' ? ' · RESCHEDULED' : ''}
+                          </span>
+                        </div>
+                        <p>{p.focus} · {p.groups.length} exercises</p>
+                      </div>
+                      {isToday && (
+                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.06em', color: 'var(--accent, #596fce)', marginRight: 6 }}>
+                          TODAY
+                        </span>
+                      )}
+                      <ChevronRight size={18} className="chevron" />
+                    </button>
+                  );
+                });
+              })()}
             </div>
             {/* Today's workout shortcut, or a rest-day message */}
             <section className="start-card">
@@ -738,13 +815,35 @@ function App() {
                 </p>
               </div>
               {todayWorkout ? (
-                <button className="primary-btn" onClick={() => startWorkout(todayWorkout)}>
-                  Start {todayWorkout.name} <ChevronRight size={17} />
-                </button>
+                <div className="start-card-actions">
+                  <button className="primary-btn" onClick={() => startWorkout(todayWorkout)}>
+                    Start {todayWorkout.name} <ChevronRight size={17} />
+                  </button>
+                  <button className="postpone-btn" onClick={() => setShowPostpone(true)}>
+                    Postpone
+                  </button>
+                </div>
               ) : (
-                <span className="muted">Enjoy your recovery day.</span>
+                <span className="muted">{todayOverride?.status === 'skipped' ? 'This workout was skipped.' : 'Enjoy your recovery day.'}</span>
               )}
             </section>
+            {showPostpone && todayWorkout && (
+              <div className="schedule-modal-backdrop" role="presentation" onClick={() => setShowPostpone(false)}>
+                <section className="schedule-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title" onClick={event => event.stopPropagation()}>
+                  <button className="schedule-modal-close" onClick={() => setShowPostpone(false)} aria-label="Close"><X size={18} /></button>
+                  <p className="eyebrow">CHANGE TODAY'S PLAN</p>
+                  <h3 id="schedule-modal-title">{todayWorkout.name}</h3>
+                  <p>What would you like to do with today's workout?</p>
+                  <button className="postpone-confirm-btn" disabled={scheduleBusy} onClick={() => adjustTodaySchedule('postpone')}>
+                    Postpone until tomorrow
+                  </button>
+                  <button className="skip-confirm-btn" disabled={scheduleBusy} onClick={() => adjustTodaySchedule('skip')}>
+                    Skip this workout
+                  </button>
+                  <button className="text-btn schedule-cancel" onClick={() => setShowPostpone(false)}>Cancel</button>
+                </section>
+              </div>
+            )}
             <section className="section-head history-head">
               <div>
                 <p className="eyebrow">RECENT ACTIVITY</p>

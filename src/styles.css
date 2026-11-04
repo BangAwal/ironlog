@@ -1476,3 +1476,131 @@ body {
     width: 100%
   }
 }
+
+/* Flexible workout scheduling */
+.start-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.start-card-actions .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.postpone-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 15px;
+  background: #e9ad35;
+  color: #242832;
+  font: 700 12px 'DM Sans';
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.postpone-btn:active,
+.postpone-confirm-btn:active {
+  transform: translateY(1px);
+}
+
+.schedule-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(13, 18, 28, .58);
+}
+
+.schedule-modal {
+  position: relative;
+  width: min(100%, 360px);
+  padding: 25px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card, #fff);
+  color: var(--text, #202633);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .22);
+}
+
+.schedule-modal h3 {
+  margin: 4px 0 8px;
+  font: 700 21px Manrope;
+}
+
+.schedule-modal > p:not(.eyebrow) {
+  margin: 0 0 20px;
+  color: var(--muted, #77808d);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.schedule-modal-close {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.postpone-confirm-btn,
+.skip-confirm-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 13px;
+  font: 700 12px 'DM Sans';
+  cursor: pointer;
+}
+
+.postpone-confirm-btn {
+  background: #e9ad35;
+  color: #242832;
+}
+
+.skip-confirm-btn {
+  margin-top: 9px;
+  background: #f1f2f5;
+  color: #59616c;
+}
+
+.postpone-confirm-btn:disabled,
+.skip-confirm-btn:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.schedule-cancel {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .start-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .start-card-actions {
+    width: 100%;
+  }
+
+  .start-card-actions > button {
+    flex: 1;
+  }
+}
